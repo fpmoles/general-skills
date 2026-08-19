@@ -10,6 +10,8 @@ set -euo pipefail
 #              ~/.general-skills/manifest/ to track only what this script
 #              controls, so re-running cleans up anything removed from the
 #              repo and a stray file in a tool's skills dir is left alone.
+#              Optionally enables this repo's tracked git hooks (.github/hooks/)
+#              via core.hooksPath, which re-run this script after every pull/push.
 # Usage:       install.sh [options]
 # -----------------------------------------------------------------------------
 
@@ -20,6 +22,9 @@ MANIFEST_DIR="${HOME}/.general-skills/manifest"
 
 SKILL_DIRS=("${HOME}/.claude/skills" "${HOME}/.codex/skills" "${HOME}/.copilot/skills" "${HOME}/.agents/skills")
 AGENT_DIRS=("${HOME}/.claude/agents" "${HOME}/.codex/agents" "${HOME}/.copilot/agents")
+
+GIT_HOOKS_DIR=".github/hooks"
+GIT_HOOK_NAMES=("pre-commit" "post-merge" "pre-push")
 
 info()    { echo "[INFO]  $*"; }
 warn()    { echo "[WARN]  $*" >&2; }
@@ -139,6 +144,45 @@ install_agents() {
 }
 
 # -----------------------------------------------------------------------------
+# Git hooks
+# -----------------------------------------------------------------------------
+# Hook scripts themselves live tracked in $GIT_HOOKS_DIR (this repo, every
+# clone) — this function's only job is turning them on for this checkout via
+# `core.hooksPath`, gated on explicit confirmation.
+
+configure_git_hooks() {
+  local current
+  current="$(git -C "$REPO_DIR" config --get core.hooksPath || true)"
+
+  if [[ "$current" == "$GIT_HOOKS_DIR" ]]; then
+    verbose "Git hooks already enabled via core.hooksPath=$GIT_HOOKS_DIR."
+    return
+  fi
+
+  if [[ -n "$current" ]]; then
+    warn "core.hooksPath is already set to '$current' — leaving it alone. Run 'git config core.hooksPath $GIT_HOOKS_DIR' yourself to switch to general-skills' tracked hooks (${GIT_HOOK_NAMES[*]})."
+    return
+  fi
+
+  if [[ ! -t 0 ]]; then
+    warn "Skipping git hooks setup (non-interactive shell). Run 'git config core.hooksPath $GIT_HOOKS_DIR' manually, or re-run install.sh from an interactive terminal, to enable: ${GIT_HOOK_NAMES[*]}."
+    return
+  fi
+
+  printf "Enable general-skills' git hooks (%s) via core.hooksPath? [y/N] " "${GIT_HOOK_NAMES[*]}"
+  read -r response
+  case "$response" in
+    [yY][eE][sS]|[yY])
+      git -C "$REPO_DIR" config core.hooksPath "$GIT_HOOKS_DIR"
+      info "Enabled git hooks: ${GIT_HOOK_NAMES[*]} (core.hooksPath=$GIT_HOOKS_DIR)."
+      ;;
+    *)
+      verbose "Skipping git hooks setup."
+      ;;
+  esac
+}
+
+# -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 
@@ -160,6 +204,7 @@ main() {
 
   install_skills
   install_agents
+  configure_git_hooks
 
   info "general-skills install complete."
 }

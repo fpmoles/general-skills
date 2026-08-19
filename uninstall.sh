@@ -12,7 +12,9 @@ set -euo pipefail
 VERBOSE=false
 DRY_RUN=false
 
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST_DIR="${HOME}/.general-skills/manifest"
+GIT_HOOKS_DIR=".github/hooks"
 
 info()    { echo "[INFO]  $*"; }
 verbose() { [[ "$VERBOSE" == true ]] && echo "[DEBUG] $*" || true; }
@@ -62,6 +64,20 @@ remove_manifest_entries() {
   fi
 }
 
+remove_git_hooks() {
+  local current
+  current="$(git -C "$REPO_DIR" config --get core.hooksPath || true)"
+  [[ "$current" == "$GIT_HOOKS_DIR" ]] || return
+
+  if [[ "$DRY_RUN" == true ]]; then
+    info "[dry-run] Would unset core.hooksPath (currently $GIT_HOOKS_DIR)"
+    return
+  fi
+
+  git -C "$REPO_DIR" config --unset core.hooksPath
+  info "Disabled git hooks (unset core.hooksPath)."
+}
+
 remove_manifest_dir() {
   [[ -d "$MANIFEST_DIR" ]] || return
   if [[ "$DRY_RUN" == true ]]; then
@@ -101,6 +117,7 @@ main() {
 
   remove_manifest_entries "skills"
   remove_manifest_entries "agents"
+  remove_git_hooks
   remove_manifest_dir
 
   info "general-skills uninstall complete."

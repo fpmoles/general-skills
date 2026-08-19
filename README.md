@@ -44,6 +44,10 @@ directory: `~/.claude`, `~/.codex`, `~/.copilot`, and (skills only) `~/.agents`.
 it installs in a manifest at `~/.general-skills/manifest/`, so re-running `install.sh` is safe
 at any time — it cleans up anything removed from the repo and syncs anything new.
 
+It'll also offer to enable this repo's tracked git hooks (`.github/hooks/`) via
+`core.hooksPath`: `pre-commit`, `post-merge` (after `git pull`), and `pre-push` — all three
+re-run `install.sh` to keep your local install in sync automatically.
+
 Run `./uninstall.sh` to remove everything the installer placed on your machine.
 
 ChatGPT setup (where a skill has a `CHATGPT_SETUP.md`) is manual — paste `INSTRUCTIONS.md`

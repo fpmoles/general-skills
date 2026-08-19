@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# general-skills git hook — tracked in .github/hooks/, enabled via core.hooksPath.
+# Keeps installed skills/agents in sync with this repo. See install.sh.
+"$(git rev-parse --show-toplevel)/install.sh"
